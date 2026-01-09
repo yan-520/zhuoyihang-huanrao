@@ -1,0 +1,527 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "OrbitUI_Optimized"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+ToggleButton.Image = "rbxassetid://158118263"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.ZIndex = 100
+ToggleButton.Parent = ScreenGui
+
+local MainPanel = Instance.new("ImageLabel")
+MainPanel.Name = "MainPanel"
+MainPanel.Size = UDim2.new(0, 520, 0, 290)
+MainPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+MainPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainPanel.BackgroundTransparency = 0.1
+MainPanel.BorderSizePixel = 0
+MainPanel.ClipsDescendants = true
+MainPanel.Visible = false
+MainPanel.ZIndex = 1
+MainPanel.Image = "rbxassetid://158118263"
+MainPanel.ImageColor3 = Color3.fromRGB(100, 100, 100)
+MainPanel.ScaleType = Enum.ScaleType.Crop
+MainPanel.Parent = ScreenGui
+
+local PanelStroke = Instance.new("UIStroke")
+PanelStroke.Color = Color3.fromRGB(60, 60, 65)
+PanelStroke.Thickness = 2
+PanelStroke.Parent = MainPanel
+
+local SnowContainer = Instance.new("Frame")
+SnowContainer.Name = "SnowContainer"
+SnowContainer.Size = UDim2.new(1, 0, 1, 0)
+SnowContainer.BackgroundTransparency = 1
+SnowContainer.ZIndex = 2
+SnowContainer.Parent = MainPanel
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 140, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Sidebar.BackgroundTransparency = 0.3
+Sidebar.BorderSizePixel = 0
+Sidebar.ZIndex = 5
+Sidebar.Parent = MainPanel
+
+local SidebarStroke = Instance.new("UIStroke")
+SidebarStroke.Color = Color3.fromRGB(50, 50, 55)
+SidebarStroke.Thickness = 1
+SidebarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+SidebarStroke.Parent = Sidebar
+
+local SidebarList = Instance.new("UIListLayout")
+SidebarList.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarList.Padding = UDim.new(0, 5)
+SidebarList.Parent = Sidebar
+
+local SidebarPadding = Instance.new("UIPadding")
+SidebarPadding.PaddingTop = UDim.new(0, 10)
+SidebarPadding.PaddingLeft = UDim.new(0, 10)
+SidebarPadding.Parent = Sidebar
+
+local ContentArea = Instance.new("Frame")
+ContentArea.Name = "ContentArea"
+ContentArea.Size = UDim2.new(1, -140, 1, 0)
+ContentArea.Position = UDim2.new(0, 140, 0, 0)
+ContentArea.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ContentArea.BackgroundTransparency = 0.6
+ContentArea.ZIndex = 5
+ContentArea.Parent = MainPanel
+
+local ProfileFrame = Instance.new("Frame")
+ProfileFrame.Name = "ProfileFrame"
+ProfileFrame.Size = UDim2.new(1, -20, 0, 60)
+ProfileFrame.Position = UDim2.new(0, 10, 1, -70)
+ProfileFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+ProfileFrame.BackgroundTransparency = 0.2
+ProfileFrame.BorderSizePixel = 0
+ProfileFrame.ZIndex = 6
+ProfileFrame.Parent = Sidebar
+
+local AvatarImage = Instance.new("ImageLabel")
+AvatarImage.Size = UDim2.new(0, 40, 0, 40)
+AvatarImage.Position = UDim2.new(0, 5, 0.5, -20)
+AvatarImage.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+AvatarImage.BackgroundTransparency = 1
+AvatarImage.Image = "rbxasset://textures/ui/gui_image_placeholder.png"
+AvatarImage.ZIndex = 7
+AvatarImage.Parent = ProfileFrame
+
+local NameLabel = Instance.new("TextLabel")
+NameLabel.Size = UDim2.new(1, -55, 0, 20)
+NameLabel.Position = UDim2.new(0, 50, 0, 5)
+NameLabel.BackgroundTransparency = 1
+NameLabel.Text = LocalPlayer.DisplayName
+NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameLabel.TextSize = 12
+NameLabel.Font = Enum.Font.GothamBold
+NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+NameLabel.ZIndex = 7
+NameLabel.Parent = ProfileFrame
+
+local StatsLabel = Instance.new("TextLabel")
+StatsLabel.Size = UDim2.new(1, -55, 0, 20)
+StatsLabel.Position = UDim2.new(0, 50, 0, 25)
+StatsLabel.BackgroundTransparency = 1
+StatsLabel.Text = "FPS: 60 | Ping: 50"
+StatsLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+StatsLabel.TextSize = 10
+StatsLabel.Font = Enum.Font.Gotham
+StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatsLabel.ZIndex = 7
+StatsLabel.Parent = ProfileFrame
+
+local dragging = false
+local dragStart = Vector2.new(0,0)
+local startPos = UDim2.new(0,0,0,0)
+
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleButton.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainPanel.Visible = not MainPanel.Visible
+end)
+
+local snowEnabled = true
+local snowSpeedMult = 1
+local snowPool = {}
+for i = 1, 40 do
+    local snow = Instance.new("TextLabel")
+    snow.Text = "❄"
+    snow.BackgroundTransparency = 1
+    snow.TextColor3 = Color3.fromRGB(180, 220, 255)
+    snow.TextTransparency = 0.5
+    snow.Size = UDim2.new(0, 20, 0, 20)
+    snow.ZIndex = 3
+    snow.Parent = SnowContainer
+    table.insert(snowPool, {
+        obj = snow,
+        x = math.random(),
+        y = math.random(),
+        baseSpeed = math.random() * 0.005 + 0.002,
+        sway = math.random() * 0.002
+    })
+end
+
+RunService.Heartbeat:Connect(function()
+    if snowEnabled then
+        for _, s in pairs(snowPool) do
+            s.obj.Visible = true
+            s.y = s.y + (s.baseSpeed * snowSpeedMult)
+            if s.y > 1.1 then
+                s.y = -0.1
+                s.x = math.random()
+            end
+            s.obj.Position = UDim2.new(s.x + math.sin(tick() + s.x * 10) * 0.02, 0, s.y, 0)
+        end
+    else
+        for _, s in pairs(snowPool) do
+            s.obj.Visible = false
+        end
+    end
+    
+    local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+    local fps = math.floor(1 / math.max(RunService.Heartbeat:Wait(), 0.001))
+    StatsLabel.Text = "FPS: " .. fps .. " | Ping: " .. ping .. "ms"
+end)
+
+task.spawn(function()
+    local content, isReady = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+    if isReady then
+        AvatarImage.Image = content
+    end
+end)
+
+local currentTab = "Home"
+local tabs = {}
+local pages = {}
+
+local function CreateTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Name = name .. "Tab"
+    btn.Size = UDim2.new(0, 110, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.AutoButtonColor = false
+    btn.ZIndex = 6
+    btn.Parent = Sidebar
+    
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name .. "Page"
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 2
+    page.Visible = false
+    page.ZIndex = 6
+    page.Parent = ContentArea
+    
+    local pad = Instance.new("UIPadding")
+    pad.PaddingTop = UDim.new(0, 15)
+    pad.PaddingLeft = UDim.new(0, 15)
+    pad.PaddingRight = UDim.new(0, 15)
+    pad.Parent = page
+    
+    tabs[name] = btn
+    pages[name] = page
+    
+    btn.MouseButton1Click:Connect(function()
+        for tName, tBtn in pairs(tabs) do
+            if tName == name then
+                tBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+                tBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
+            else
+                tBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+                tBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            end
+        end
+        for pName, pFrame in pairs(pages) do
+            pFrame.Visible = (pName == name)
+        end
+    end)
+end
+
+CreateTab("主页")
+CreateTab("设置")
+
+tabs["主页"].TextColor3 = Color3.fromRGB(100, 200, 255)
+tabs["主页"].BackgroundColor3 = Color3.fromRGB(45, 50, 60)
+pages["主页"].Visible = true
+
+local selectedPlayer = nil
+local isOrbiting = false
+local currentMode = "Orbit" 
+local orbitSpeed = 15
+local orbitRadius = 5
+local orbitHeight = 0
+local orbitAngle = 0
+
+local PlayerStatusLabel = Instance.new("TextLabel")
+PlayerStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+PlayerStatusLabel.BackgroundTransparency = 1
+PlayerStatusLabel.Text = "当前选择: 无"
+PlayerStatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+PlayerStatusLabel.Font = Enum.Font.Gotham
+PlayerStatusLabel.TextSize = 14
+PlayerStatusLabel.ZIndex = 7
+PlayerStatusLabel.Parent = pages["主页"]
+
+local PlayerListScroll = Instance.new("ScrollingFrame")
+PlayerListScroll.Size = UDim2.new(1, 0, 0, 110)
+PlayerListScroll.Position = UDim2.new(0, 0, 0, 35)
+PlayerListScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+PlayerListScroll.BackgroundTransparency = 0.5
+PlayerListScroll.BorderSizePixel = 0
+PlayerListScroll.ScrollBarThickness = 2
+PlayerListScroll.ZIndex = 7
+PlayerListScroll.Parent = pages["主页"]
+
+local PLLayout = Instance.new("UIListLayout")
+PLLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PLLayout.Padding = UDim.new(0, 2)
+PLLayout.Parent = PlayerListScroll
+
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Size = UDim2.new(1, 0, 0, 100)
+ButtonContainer.Position = UDim2.new(0, 0, 0, 155)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = pages["主页"]
+
+local ButtonGrid = Instance.new("UIGridLayout")
+ButtonGrid.CellSize = UDim2.new(0.48, 0, 0, 40)
+ButtonGrid.CellPadding = UDim2.new(0.04, 0, 0, 10)
+ButtonGrid.SortOrder = Enum.SortOrder.LayoutOrder
+ButtonGrid.Parent = ButtonContainer
+
+local function CreateButton(parent, text, callback, layoutOrder)
+    local btn = Instance.new("TextButton")
+    btn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.AutoButtonColor = true
+    btn.BorderSizePixel = 0
+    btn.ZIndex = 7
+    btn.LayoutOrder = layoutOrder or 0
+    btn.Parent = parent
+    
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function RefreshPlayers()
+    for _, v in pairs(PlayerListScroll:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            btn.BackgroundTransparency = 0.5
+            btn.BorderSizePixel = 0
+            btn.Text = "  " .. p.DisplayName .. " (@" .. p.Name .. ")"
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 12
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.ZIndex = 8
+            btn.Parent = PlayerListScroll
+            
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayer = p
+                PlayerStatusLabel.Text = "当前选择: " .. p.DisplayName
+                if isOrbiting then 
+                    orbitAngle = 0 
+                end
+            end)
+        end
+    end
+    PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, (#PlayerListScroll:GetChildren()-1) * 32)
+end
+
+local ModeBtn = CreateButton(ButtonContainer, "模式: 环绕", function() end, 1)
+ModeBtn.MouseButton1Click:Connect(function()
+    if currentMode == "Orbit" then
+        currentMode = "Below"
+        ModeBtn.Text = "模式: 下方"
+        ModeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    else
+        currentMode = "Orbit"
+        ModeBtn.Text = "模式: 环绕"
+        ModeBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+    end
+end)
+
+local ToggleOrbitBtn = CreateButton(ButtonContainer, "开始/停止", function()
+    if not selectedPlayer then return end
+    isOrbiting = not isOrbiting
+end, 2)
+
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 10)
+SettingsLayout.Parent = pages["设置"]
+
+local function CreateSlider(parent, text, min, max, default, callback)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 50)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 7
+    container.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = text .. ": " .. default
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 7
+    label.Parent = container
+    
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 0, 6)
+    bg.Position = UDim2.new(0, 0, 0, 30)
+    bg.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    bg.BorderSizePixel = 0
+    bg.ZIndex = 7
+    bg.Parent = container
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 8
+    fill.Parent = bg
+    
+    local trigger = Instance.new("TextButton")
+    trigger.Size = UDim2.new(1, 0, 1, 0)
+    trigger.BackgroundTransparency = 1
+    trigger.Text = ""
+    trigger.ZIndex = 9
+    trigger.Parent = bg
+    
+    local function Update(input)
+        local pos = math.clamp((input.Position.X - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(pos, 0, 1, 0)
+        local val = math.floor(min + (max - min) * pos)
+        label.Text = text .. ": " .. val
+        callback(val)
+    end
+    
+    local sliderDragging = false
+    trigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliderDragging = true
+            Update(input)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliderDragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            Update(input)
+        end
+    end)
+end
+
+local SnowToggleBtn = Instance.new("TextButton")
+SnowToggleBtn.Size = UDim2.new(1, 0, 0, 40)
+SnowToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
+SnowToggleBtn.BackgroundTransparency = 0.2
+SnowToggleBtn.Text = "雪花特效: 开启"
+SnowToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
+SnowToggleBtn.Font = Enum.Font.GothamBold
+SnowToggleBtn.TextSize = 14
+SnowToggleBtn.BorderSizePixel = 0
+SnowToggleBtn.ZIndex = 7
+SnowToggleBtn.Parent = pages["设置"]
+
+SnowToggleBtn.MouseButton1Click:Connect(function()
+    snowEnabled = not snowEnabled
+    if snowEnabled then
+        SnowToggleBtn.Text = "雪花特效: 开启"
+        SnowToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
+    else
+        SnowToggleBtn.Text = "雪花特效: 关闭"
+        SnowToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
+
+CreateSlider(pages["设置"], "雪花下落速度", 1, 10, 1, function(v) snowSpeedMult = v end)
+CreateSlider(pages["设置"], "环绕速度", 1, 50, 15, function(v) orbitSpeed = v end)
+CreateSlider(pages["设置"], "环绕半径", 2, 30, 5, function(v) orbitRadius = v end)
+CreateSlider(pages["设置"], "环绕高度", -10, 20, 0, function(v) orbitHeight = v end)
+
+RunService.RenderStepped:Connect(function(dt)
+    if isOrbiting and selectedPlayer and selectedPlayer.Character and LocalPlayer.Character then
+        local targetRoot = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local localHum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        
+        if targetRoot and localRoot and localHum then
+            if currentMode == "Orbit" then
+                orbitAngle = orbitAngle + (orbitSpeed * dt)
+                local offsetX = math.cos(orbitAngle) * orbitRadius
+                local offsetZ = math.sin(orbitAngle) * orbitRadius
+                local targetPos = targetRoot.Position
+                local newPos = Vector3.new(targetPos.X + offsetX, targetPos.Y + orbitHeight, targetPos.Z + offsetZ)
+                
+                localRoot.CFrame = CFrame.lookAt(newPos, targetPos)
+                
+            elseif currentMode == "Below" then
+                local targetPos = targetRoot.Position
+                local newPos = targetPos - Vector3.new(0, 8, 0)
+                -- 90度，面朝上躺着
+                localRoot.CFrame = CFrame.new(newPos) * CFrame.Angles(math.rad(90), 0, 0)
+            end
+            
+            localHum.PlatformStand = true
+        end
+    else
+        if LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end
+end)
+
+ToggleOrbitBtn.MouseButton1Click:Connect(function()
+    if isOrbiting then
+        ToggleOrbitBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
+        ToggleOrbitBtn.Text = "运行中..."
+    else
+        ToggleOrbitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleOrbitBtn.Text = "开始/停止"
+    end
+end)
+
+RefreshPlayers()
+Players.PlayerAdded:Connect(RefreshPlayers)
+Players.PlayerRemoving:Connect(RefreshPlayers)
